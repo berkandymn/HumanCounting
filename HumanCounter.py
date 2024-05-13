@@ -7,7 +7,7 @@ import mqttClient as mqtt
 basla=time.time()
 bitis=time.time()
 mp_pose = mp.solutions.pose
-ppl=int(0)
+ppl=mqtt.ilkDeger()
 dizi=np.array([[]])
 a=[]
 cap = cv2.VideoCapture("test.mp4")
