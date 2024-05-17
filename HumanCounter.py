@@ -1,30 +1,41 @@
+#görüntü okuma dizi ve zaman işlemleri için gerekli kütüphaneler
 import cv2
 import numpy as np
 import time
 import mqttClient as mqtt
 
+#kişi algılamak için kullanılan mediapipe kütüphanesi eklentileri
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
+
+#kişi takibi hesaplamaların yapıldığı dosya
+from tracker import EuclideanDistTracker
 
 basla=time.time()
 bitis=time.time()
 
 mp_pose = mp.solutions.pose
 ppl=mqtt.ilkDeger()
+
+#kullanılan değişken tanımları
 dizi=np.array([[]])
 a=[]
-
 x=np.array([[]])
 y=np.array([[]])
 hassasiyet=[]
 boxes_ids=0
 
-cap = cv2.VideoCapture("test.mp4")
+#takip için fonksiyon nesnesi
+tracker = EuclideanDistTracker()
+
+#opencv ile görüntünün okunması
+cap = cv2.VideoCapture("testVideo.mp4")
 
 mqttMessage=0
 
+#kullanılan modelin ön ayarları
 base_options = python.BaseOptions(model_asset_path='pose_landmarker_full.task')
 options = vision.PoseLandmarkerOptions(
     base_options=base_options,
@@ -46,6 +57,9 @@ while cap.isOpened():
 
     aralık1=frameHeight/6*3
     aralık2=frameHeight/6*4
+
+    #merkez noktası takibi için fpnksiyona aralık bilgisi gönderiliyor.
+    tracker.frame(aralık1,aralık2)
 
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
     detection_result = detector.detect(mp_image)
@@ -85,7 +99,8 @@ while cap.isOpened():
     if mqttMessage!=ppl:
         mqtt.mqttPublish(ppl)
     mqttMessage=ppl
-
+    if not len(detections)==0:
+        ppl=tracker.update(detections)
     frame.flags.writeable = True
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
     cv2.imshow('MediaPipe Pose', frame)
